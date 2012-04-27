@@ -1,6 +1,6 @@
 {application, elogserver,
  [
-  {description, ""},
+  {description, "a simple log server"},
   {vsn, "1"},
   {registered, []},
   {applications, [
@@ -8,5 +8,6 @@
                   stdlib
                  ]},
   {mod, { elogserver_app, []}},
-  {env, []}
+  {env, []},
+  {start_phases, []}
  ]}.
