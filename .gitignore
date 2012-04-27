@@ -6,3 +6,4 @@ priv
 *.plt
 .settings
 .project
+ebin
