@@ -15,7 +15,7 @@
 
 %% --------------------------------------------------------------------
 %% External exports
--export([start_link/0, register_connection/1, delete_connection/1]).
+-export([start_link/0, register_connection/2, delete_connection/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -28,11 +28,11 @@
 start_link() ->
 	gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-register_connection(FileId) ->
-	gen_server:call(?SERVER, {register_connection, FileId}).
+register_connection(FileId, Pid) ->
+	gen_server:call(?SERVER, {register_connection, FileId, Pid}).
 
-delete_connection(FileId) ->
-	gen_server:call(?SERVER, {delete_connection, FileId}).
+delete_connection(FileId, Pid) ->
+	gen_server:call(?SERVER, {delete_connection, FileId, Pid}).
 	
 %% ====================================================================
 %% Server functions
@@ -60,23 +60,30 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({register_connection, FileId}, From, State = #state{handlers = Handlers}) ->
+handle_call({register_connection, FileId, Pid}, _From, State = #state{handlers = Handlers}) ->
 	case dict:find(FileId, Handlers) of
 		error ->
 			Pids = sets:new(),
-			{reply, ok, State#state{handlers = dict:append(FileId, sets:add_element(From, Pids), Handlers)}};
+			{reply, ok, State#state{handlers = dict:store(FileId, sets:add_element(Pid, Pids), Handlers)}};
 		{ok, Val} ->
-			{reply, ok, State#state{handlers = dict:append(FileId, sets:add_element(From, Val), Handlers)}}
+			{reply, ok, State#state{handlers = dict:store(FileId, sets:add_element(Pid, Val), Handlers)}}
 	end;
-handle_call({delete_connection, FileId}, From, State = #state{handlers = Handlers}) ->
+handle_call({delete_connection, FileId, Pid}, _From, State = #state{handlers = Handlers}) ->
 	case dict:find(FileId, Handlers) of
 		error ->
-			State;
+			{noreply, State};
 		{ok, Val} ->
-			case sets:is_element(From, Val) of
+			case sets:is_set(Val) of 
 				true ->
-					State#state{handlers = dict:store(FileId, sets:del_element(From, Val), Handlers)}
+					Value1 = sets:del_element(Pid, Val),
+					{noreply, State#state{handlers = dict:store(FileId, Value1, Handlers)}};
+				false ->
+					{noreply, State}
 			end
+%% 			case sets:is_element(From, Val) of
+%% 				true ->
+%% 					State#state{handlers = dict:store(FileId, sets:del_element(From, Val), Handlers)}
+%% 			end
 	end;
 handle_call(_Request, _From, State) ->
     Reply = ok,

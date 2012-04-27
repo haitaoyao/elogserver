@@ -144,7 +144,7 @@ handle_packet(1, Data, State = #state{client_address = ClientAddress}) when is_b
 	Folder = "/tmp/elogserver/" ++ ClientAddress ++ "/" ++ TopicName,
 	FilePath = Folder ++ "/" ++ FileName,
 	FileId = ClientAddress ++ "##" ++ DataString,
-	els_logs_repo:register_connection(FileId),
+	els_logs_repo:register_connection(FileId, self()),
 	{ok, IoDevice} = open_file(FilePath),
 	State1 = State#state{file_handle = IoDevice, file_path = FilePath, file_id = FileId},
 	State1;
@@ -192,7 +192,7 @@ handle_info({'DOWN', MonitorRef, process, Pid, Reason}, State = #state{recv_proc
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
 terminate(_Reason, _State = #state{file_id = FileId}) ->
-	els_logs_repo:delete_connection(FileId),
+	els_logs_repo:delete_connection(FileId, self()),
     ok.
 
 %% --------------------------------------------------------------------

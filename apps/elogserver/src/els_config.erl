@@ -25,7 +25,8 @@ get_config(Key) when is_list(Key) ->
 %% 	Value.
 
 get_data_path() ->
-	get_config("data_path").
+	"/tmp/elogserver".
+%% 	get_config("data_path").
 
 %%
 %% Local Functions
