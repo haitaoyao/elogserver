@@ -141,7 +141,7 @@ handle_packet(1, Data, State = #state{client_address = ClientAddress}) when is_b
 	DataString = binary_to_list(Data),
 	[TopicName, FileName] = string:tokens(DataString, "##"),
 %% 	Folder = els_config:get_data_path() ++ "/" ++ ClientAddress ++ "/" ++ TopicName,
-	Folder = "/tmp/elogserver/" ++ ClientAddress ++ "/" ++ TopicName,
+	Folder = els_config:get_data_path() ++ ClientAddress ++ "/" ++ TopicName,
 	FilePath = Folder ++ "/" ++ FileName,
 	FileId = ClientAddress ++ "##" ++ DataString,
 	els_logs_repo:register_connection(FileId, self()),
