@@ -12,7 +12,7 @@
 %%
 %% Exported Functions
 %%
--export([start_link/1, recv_loop/2, new_connection/2, rotate_log/1, log_rotated/1]).
+-export([start_link/1, recv_loop/2, new_connection/2, log_rotated/1]).
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2, code_change/3]).
 -define(READ_TIMEOUT, 4000).
 -define(SERVER, ?MODULE).
@@ -27,9 +27,6 @@ start_link(Socket) ->
 	
 new_connection(HandlerRef, Socket) ->
 	gen_server:call(HandlerRef, {new_connection, Socket}).
-
-rotate_log(Pid) ->
-	gen_server:call(Pid, {rotate_log}).
 
 log_rotated(Pid) ->
 	gen_server:call(Pid, {log_rotated}).
@@ -92,51 +89,15 @@ new_recv_process(Socket) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({log_rotated}, _From, State) ->
+	swap_file(State),
+	{noreply, State};
 handle_call({new_connection, Socket}, 
 			_From, 
 			State = #state{connection_count = ConnectionCount,recv_processes = RecvProcesses}) ->
 	RecvPid = new_recv_process(Socket),
 	{reply, ok, State#state{connection_count = ConnectionCount + 1, 
-							recv_processes = sets:add_element(RecvPid, RecvProcesses)}};
-
-handle_call({rotate_log}, _From, State = #state{file_path = FilePath}) ->
-	io:format("rotate_log: ~p~n", [FilePath]),
-	rename_file(FilePath),
-	swap_file(State);
-
-handle_call({log_rotated}, _From, State) ->
-	swap_file(State);
-
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
-
-rename_file(FilePath) ->
-	{Year, Month, Day} = erlang:date(),
-	NewFilePath = FilePath ++ "." ++ io_lib:format("~w-~w-~w", [Year, Month, Day]), 
-	case filelib:is_file(NewFilePath) of
-		true ->
-			rename_file_iterate(FilePath, NewFilePath, 1, 1000);
-		false ->
-			file:rename(FilePath, NewFilePath)
-	end.
-
-rename_file_iterate(FilePath, NewPath, Max, Max) ->
-	NewPath1 = NewPath ++ "." ++ integer_to_list(Max),
-	case filelib:is_file(NewPath1) of
-		true ->
-			error_logger:error_msg("failed to rename file: " ++ FilePath ++ ", reason: max index exceeded");
-		false ->
-			file:rename(FilePath, NewPath1)
-	end;
-rename_file_iterate(FilePath, NewPath, Index, Max) ->
-	NewPath1 = NewPath ++ "." ++ integer_to_list(Index),
-	case filelib:is_file(NewPath1) of
-		true ->
-			rename_file_iterate(FilePath, NewPath, Index + 1, Max);
-		false ->
-			file:rename(FilePath, NewPath1)
-	end.
+							recv_processes = sets:add_element(RecvPid, RecvProcesses)}}.
 
 swap_file(State = #state{file_handle = IoDevice, file_path = FilePath}) ->
 	file:close(IoDevice),
@@ -162,7 +123,6 @@ handle_cast(_Msg, State) ->
 handle_packet(1, Data, State = #state{client_address = ClientAddress}) when is_binary(Data) ->
 	DataString = binary_to_list(Data),
 	[TopicName, FileName] = string:tokens(DataString, "##"),
-%% 	Folder = els_config:get_data_path() ++ "/" ++ ClientAddress ++ "/" ++ TopicName,
 	Folder = els_config:get_data_path() ++ "/" ++ TopicName,
 	FilePath = Folder ++ "/" ++ FileName,
 	FileId = ClientAddress ++ "##" ++ DataString,

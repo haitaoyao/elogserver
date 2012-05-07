@@ -80,10 +80,6 @@ handle_call({delete_connection, FileId, Pid}, _From, State = #state{handlers = H
 				false ->
 					{noreply, State}
 			end
-%% 			case sets:is_element(From, Val) of
-%% 				true ->
-%% 					State#state{handlers = dict:store(FileId, sets:del_element(From, Val), Handlers)}
-%% 			end
 	end;
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -109,24 +105,47 @@ handle_cast(_Msg, State) ->
 handle_info({timeout, _Ref, crontab}, State = #state{handlers = Handlers}) ->
 	start_cron(),
 	io:format("contab found~n"),
-	dict:map(fun(FileId, Pids) -> io:format("file: ~p, pids: ~p~n", [FileId, Pids]), rotate_log(sets:to_list(Pids)) end, Handlers),
+	lists:map(fun(FileId) -> rename_file(FileId) end, dict:fetch_keys(Handlers)),
+	dict:map(fun(_FileId, Pids) -> notify_handlers(sets:to_list(Pids)) end, 
+			 Handlers),
 	{noreply, State};
 handle_info(Info, State) ->
 	error_logger:error_info(io_lib:format("unknown info: ~p~n", [Info])),
 	io:format("other message found: ~p~n " , [Info]),
     {noreply, State}.
 
-rotate_log([]) ->
-	ok;
-rotate_log([Handler|Rest]) when is_pid(Handler)->
-	els_handler:rotate_log(Handler),
-	notify_handlers(Rest).
 notify_handlers([]) ->
 	ok;
 notify_handlers([H|Rest]) when is_pid(H) ->
-	els_hander:log_rotated(H),
+	els_handler:log_rotated(H),
 	notify_handlers(Rest).
 
+rename_file(FilePath) ->
+	{Year, Month, Day} = erlang:date(),
+	NewFilePath = FilePath ++ "." ++ io_lib:format("~w-~w-~w", [Year, Month, Day]), 
+	case filelib:is_file(NewFilePath) of
+		true ->
+			rename_file_iterate(FilePath, NewFilePath, 1, 1000);
+		false ->
+			file:rename(FilePath, NewFilePath)
+	end.
+
+rename_file_iterate(FilePath, NewPath, Max, Max) ->
+	NewPath1 = NewPath ++ "." ++ integer_to_list(Max),
+	case filelib:is_file(NewPath1) of
+		true ->
+			error_logger:error_msg("failed to rename file: " ++ FilePath ++ ", reason: max index exceeded");
+		false ->
+			file:rename(FilePath, NewPath1)
+	end;
+rename_file_iterate(FilePath, NewPath, Index, Max) ->
+	NewPath1 = NewPath ++ "." ++ integer_to_list(Index),
+	case filelib:is_file(NewPath1) of
+		true ->
+			rename_file_iterate(FilePath, NewPath, Index + 1, Max);
+		false ->
+			file:rename(FilePath, NewPath1)
+	end.
 %% --------------------------------------------------------------------
 %% Function: terminate/2
 %% Description: Shutdown the server
