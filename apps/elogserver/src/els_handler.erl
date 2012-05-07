@@ -8,7 +8,7 @@
 %%
 %% Include files
 %%
-
+-include("elogserver.hrl").
 %%
 %% Exported Functions
 %%
@@ -100,6 +100,7 @@ handle_call({new_connection, Socket},
 							recv_processes = sets:add_element(RecvPid, RecvProcesses)}};
 
 handle_call({rotate_log}, _From, State = #state{file_path = FilePath}) ->
+	io:format("rotate_log: ~p~n", [FilePath]),
 	rename_file(FilePath),
 	swap_file(State);
 
@@ -112,7 +113,7 @@ handle_call(_Request, _From, State) ->
 
 rename_file(FilePath) ->
 	{Year, Month, Day} = erlang:date(),
-	NewFilePath = FilePath ++ io_lib:format("~s-~s-~s", [Year, Month, Day]), 
+	NewFilePath = FilePath ++ "." ++ io_lib:format("~w-~w-~w", [Year, Month, Day]), 
 	case filelib:is_file(NewFilePath) of
 		true ->
 			rename_file_iterate(FilePath, NewFilePath, 1, 1000);
@@ -223,3 +224,11 @@ terminate(_Reason, _State = #state{file_id = FileId}) ->
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-ifdef(TEST).
+rename_file_test() ->
+	Path = "/tmp/aa",
+	file:write_file(Path, "hello"),
+	rename_file(Path),
+	ok.
+-endif.

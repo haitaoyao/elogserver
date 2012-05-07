@@ -12,7 +12,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+-include("elogserver.hrl").
 %% --------------------------------------------------------------------
 %% External exports
 -export([start_link/0, register_connection/2, delete_connection/2]).
@@ -108,13 +108,13 @@ handle_cast(_Msg, State) ->
 %% --------------------------------------------------------------------
 handle_info({timeout, _Ref, crontab}, State = #state{handlers = Handlers}) ->
 	start_cron(),
-	Handlers = dict:fetch_keys(Handlers),
-	rotate_log(Handlers),
+	io:format("contab found~n"),
+	dict:map(fun(FileId, Pids) -> io:format("file: ~p, pids: ~p~n", [FileId, Pids]), rotate_log(sets:to_list(Pids)) end, Handlers),
 	{noreply, State};
 handle_info(Info, State) ->
 	error_logger:error_info(io_lib:format("unknown info: ~p~n", [Info])),
+	io:format("other message found: ~p~n " , [Info]),
     {noreply, State}.
-
 
 rotate_log([]) ->
 	ok;
@@ -124,7 +124,7 @@ rotate_log([Handler|Rest]) when is_pid(Handler)->
 notify_handlers([]) ->
 	ok;
 notify_handlers([H|Rest]) when is_pid(H) ->
-	els_hander:rotate_log(H),
+	els_hander:log_rotated(H),
 	notify_handlers(Rest).
 
 %% --------------------------------------------------------------------
@@ -148,7 +148,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 start_cron() ->
-	Time = seconds_to_midnight(),
+%% 	Time = seconds_to_midnight(),
+	Time = 10,
 	erlang:start_timer(Time * 1000, self(), crontab).
 
 seconds_to_midnight() ->
