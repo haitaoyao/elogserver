@@ -113,8 +113,29 @@ handle_call(_Request, _From, State) ->
 rename_file(FilePath) ->
 	{Year, Month, Day} = erlang:date(),
 	NewFilePath = FilePath ++ io_lib:format("~s-~s-~s", [Year, Month, Day]), 
-	%% TODO file exits for rotate
-	file:rename(FilePath, NewFilePath).
+	case filelib:is_file(NewFilePath) of
+		true ->
+			rename_file_iterate(FilePath, NewFilePath, 1, 1000);
+		false ->
+			file:rename(FilePath, NewFilePath)
+	end.
+
+rename_file_iterate(FilePath, NewPath, Max, Max) ->
+	NewPath1 = NewPath ++ "." ++ integer_to_list(Max),
+	case filelib:is_file(NewPath1) of
+		true ->
+			error_logger:error_msg("failed to rename file: " ++ FilePath ++ ", reason: max index exceeded");
+		false ->
+			file:rename(FilePath, NewPath1)
+	end;
+rename_file_iterate(FilePath, NewPath, Index, Max) ->
+	NewPath1 = NewPath ++ "." ++ integer_to_list(Index),
+	case filelib:is_file(NewPath1) of
+		true ->
+			rename_file_iterate(FilePath, NewPath, Index + 1, Max);
+		false ->
+			file:rename(FilePath, NewPath1)
+	end.
 
 swap_file(State = #state{file_handle = IoDevice, file_path = FilePath}) ->
 	file:close(IoDevice),
@@ -141,7 +162,7 @@ handle_packet(1, Data, State = #state{client_address = ClientAddress}) when is_b
 	DataString = binary_to_list(Data),
 	[TopicName, FileName] = string:tokens(DataString, "##"),
 %% 	Folder = els_config:get_data_path() ++ "/" ++ ClientAddress ++ "/" ++ TopicName,
-	Folder = els_config:get_data_path() ++ ClientAddress ++ "/" ++ TopicName,
+	Folder = els_config:get_data_path() ++ "/" ++ TopicName,
 	FilePath = Folder ++ "/" ++ FileName,
 	FileId = ClientAddress ++ "##" ++ DataString,
 	els_logs_repo:register_connection(FileId, self()),
@@ -152,8 +173,8 @@ handle_packet(1, Data, State = #state{client_address = ClientAddress}) when is_b
 %%
 %% 2: means data came
 %%
-handle_packet(2, Data, State = #state{file_handle = IoDevice}) when is_binary(Data) ->
-	case file:write(IoDevice, Data) of
+handle_packet(2, Data, State = #state{file_handle = IoDevice, client_address = ClientAddress}) when is_binary(Data) ->
+	case file:write(IoDevice, list_to_binary([ClientAddress, " ", Data, "\n"])) of
 		ok ->
 			State;
 		{error, Reason} ->
