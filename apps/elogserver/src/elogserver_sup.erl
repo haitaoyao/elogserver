@@ -26,6 +26,7 @@ start_link() ->
 init([]) ->
 	HandlerRepoSpec = ?CHILD(els_logs_repo, worker),
 	HandlerSupSpec = ?CHILD(els_handler_sup, supervisor),
+	WriterSupSpec = ?CHILD(els_log_writer_sup, supervisor),
 	TransportSpec = ?CHILD(els_transport, worker),
-    {ok, { {one_for_one, 5, 10}, [HandlerRepoSpec, HandlerSupSpec, TransportSpec]} }.
+    {ok, { {one_for_one, 5, 10}, [HandlerRepoSpec, HandlerSupSpec, WriterSupSpec, TransportSpec]} }.
 
