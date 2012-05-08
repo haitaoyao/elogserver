@@ -131,8 +131,8 @@ handle_packet(Other, Data, State = #state{client_address = ClientAddress}) when 
 	State.
 
 client_address(Socket) ->
-	{ok, {{A, B, C, D}, _Port}} = inet:peername(Socket),
-	io_lib:format("~p.~p.~p.~p", [A, B, C, D]).
+	{ok, {{A, B, C, D}, Port}} = inet:peername(Socket),
+	io_lib:format("~p.~p.~p.~p:~p", [A, B, C, D, Port]).
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
 %% Description: Handling all non call/cast messages
