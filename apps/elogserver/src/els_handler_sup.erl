@@ -14,7 +14,7 @@
 %% --------------------------------------------------------------------
 %% External export
 %% --------------------------------------------------------------------
--export([new_connection/1, start_link/0]).
+-export([new_connection/1, start_link/0, get_all_handlers/0]).
 
 %% --------------------------------------------------------------------
 %% Internal exports
@@ -39,6 +39,16 @@
 %% create a new connection
 new_connection(Socket) ->
 	supervisor:start_child(?MODULE, [Socket]).
+
+get_all_handlers() ->
+	case erlang:whereis(?SERVER) of
+		undefined ->
+			[];
+		Pid when is_pid(Pid) ->
+			Children = supervisor:which_children(Pid),
+			lists:foldl(fun({_Id, Child, _Type, _Modules}, Result) -> 
+								[{els_handler:get_file_path(Child), Child}|Result] end, [], Children)
+	end.
 
 %% start the supervisor
 start_link() ->

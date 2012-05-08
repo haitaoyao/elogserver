@@ -13,7 +13,7 @@
 -include("elogserver.hrl").
 %% --------------------------------------------------------------------
 %% External exports
--export([start_link/1, write_log/2, rotate_file/1]).
+-export([start_link/1, write_log/2, rotate_file/1, get_file_path/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -31,6 +31,9 @@ write_log(WriterPid, LogData) ->
 
 rotate_file(WriterPid) ->
 	gen_server:cast(WriterPid, {rotate_file}).
+
+get_file_path(WriterPid) ->
+	gen_server:call(WriterPid, {get_file_path}).
 
 %% ====================================================================
 %% Server functions
@@ -62,6 +65,8 @@ open_file(FilePath) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({get_file_path}, _From, State = #state{file_path = FilePath}) ->
+	{reply, FilePath, State};
 handle_call(_Request, _From, State) ->
 	{reply, ok, State}.
 

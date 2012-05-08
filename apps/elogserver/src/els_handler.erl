@@ -12,12 +12,12 @@
 %%
 %% Exported Functions
 %%
--export([start_link/1, recv_loop/2, log_rotated/1]).
+-export([start_link/1, recv_loop/2, log_rotated/1, get_file_path/1]).
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2, code_change/3]).
 -define(READ_TIMEOUT, 4000).
 -define(SERVER, ?MODULE).
 -record(state, {socket, 
-				file_path, file_id, 
+				file_path, 
 			    client_address}).
 %%
 %% API Functions
@@ -27,6 +27,9 @@ start_link(Socket) ->
 
 log_rotated(Pid) ->
 	gen_server:call(Pid, {log_rotated}).
+
+get_file_path(Pid) ->
+	gen_server:call(Pid, {get_file_path}).
 
 %% ====================================================================
 %% Server functions
@@ -84,6 +87,8 @@ new_recv_process(Socket) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({get_file_path}, _From, State = #state{file_path = FilePath}) ->
+	{reply, FilePath, State};
 handle_call(_Msg, _From, State) ->
 	{noreply, State}.
 
@@ -147,8 +152,8 @@ handle_info({'DOWN', MonitorRef, process, Pid, Reason}, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
-terminate(_Reason, _State = #state{file_id = FileId}) ->
-	els_logs_repo:delete_connection(FileId, self()),
+terminate(_Reason, _State = #state{file_path = FilePath}) ->
+	els_logs_repo:delete_connection(FilePath, self()),
     ok.
 
 %% --------------------------------------------------------------------

@@ -57,8 +57,10 @@ deregister_writer(FilePath, Pid) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	AllWriters = els_log_writer_sup:get_running_writers(),
+	WritersMapping = lists:foldl(fun({FilePath, Pid}, Acc) -> dict:store(FilePath, Pid, Acc) end, dict:new(), AllWriters),
 	start_cron(),
-    {ok, #state{handlers = dict:new(), writers = dict:new()}}.
+    {ok, #state{handlers = dict:new(), writers = WritersMapping}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
