@@ -121,7 +121,7 @@ handle_packet(1, Data, State) when is_binary(Data) ->
 %% 2: means data came
 %%
 handle_packet(2, Data, State = #state{client_address = ClientAddress, file_path = FilePath}) when is_binary(Data) ->
-	LogData = list_to_binary([ClientAddress, " ", Data, "\n"]),
+	LogData = list_to_binary([ClientAddress, " ", Data]),
 	WriterPid = els_logs_repo:get_log_writer(FilePath),
 	els_log_writer:write_log(WriterPid, LogData),
 	State;
