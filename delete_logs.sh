@@ -9,7 +9,7 @@ set -u -e
 ##################################################################
 current_dir="$(cd $(dirname $0);pwd)"
 
-log_max_day=30
+log_max_day=15
 log_folder='/data/logs/elogserver'
 log_expire_time=$(date +%s -d "$log_max_day days ago")
 
@@ -20,7 +20,7 @@ do
 	if [ -n "$file_date" ]
 	then
 		file_time=$(date -d "$file_date" +%s)
-		if [ "$file_type" -lt "$log_expire_time" ]
+		if [ "$file_time" -lt "$log_expire_time" ]
 		then
 			rm $file_path
 			echo "$file_path deleted" 
