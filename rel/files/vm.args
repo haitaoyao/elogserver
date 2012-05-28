@@ -1,5 +1,5 @@
 ## Name of the node
--name elogserver@127.0.0.1
+-sname elogserver
 
 ## Cookie for distributed erlang
 -setcookie elogserver
