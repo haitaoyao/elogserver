@@ -155,8 +155,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 -ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 rename_file_test() ->
-	Path = "/tmp/aa",
+	Path = "/tmp/a2a1",
 	file:write_file(Path, "hello"),
 	rename_file(Path),
 	ok.
