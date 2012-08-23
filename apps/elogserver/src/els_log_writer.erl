@@ -103,7 +103,8 @@ rename_file(FilePath) ->
 			rename_file_iterate(FilePath, NewFilePath, 1, 1000);
 		false ->
 			file:rename(FilePath, NewFilePath)
-	end.
+	end,
+        lager:info(info, self(), "file has been renamed").
 
 rename_file_iterate(FilePath, NewPath, Max, Max) ->
 	NewPath1 = NewPath ++ "." ++ integer_to_list(Max),
