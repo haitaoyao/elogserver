@@ -25,6 +25,7 @@ start_ok(_App, ok) ->
 start_ok(_App, {error, {already_started, _App}}) ->
     ok;
 start_ok(App, {error, {not_started, Dep}}) ->
+    error_logger:error_info("trying to start dep: " ++ atom_to_list(Dep)),
     ok = start(Dep),
     start(App);
 start_ok(_App, {error, Reason}) ->

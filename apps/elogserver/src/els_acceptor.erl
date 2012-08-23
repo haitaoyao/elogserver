@@ -23,6 +23,7 @@ init(LSocket) ->
 	case gen_tcp:accept(LSocket, ?ACCEPT_TIMEOUT) of
 		{ok, Socket} ->
 			els_handler_sup:new_connection(Socket),
+		        lager:log(info, self(), io_lib:format("new connection, source: ~s", [els_utils:client_address(Socket)])),
 			?MODULE:init(LSocket);
 		{error, timeout} ->
 			?MODULE:init(LSocket);

@@ -44,7 +44,7 @@ get_file_path(Pid) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([Socket]) ->
-	ClientAddress = client_address(Socket),
+	ClientAddress = els_utils:client_address(Socket),
 	new_recv_process(Socket),
 	{ok, #state{socket = Socket,
 				client_address = ClientAddress}}.
@@ -130,9 +130,6 @@ handle_packet(Other, Data, State = #state{client_address = ClientAddress}) when 
 	error_logger:error_msg(io_lib:format("invalid request, type: ~p, client ip: ~p~n", [Other, ClientAddress])),
 	State.
 
-client_address(Socket) ->
-	{ok, {{A, B, C, D}, Port}} = inet:peername(Socket),
-	io_lib:format("~p.~p.~p.~p:~p", [A, B, C, D, Port]).
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
 %% Description: Handling all non call/cast messages
